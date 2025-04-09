@@ -1,40 +1,13 @@
 package main
 
 import (
-	"encoding/csv"
 	"flag"
 	"fmt"
+	"log"
+	"math"
 	"os"
 	"strconv"
 )
-
-func loadCSV(path string) ([]float64, []float64, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	lines, err := reader.ReadAll()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var x, y []float64
-	for _, line := range lines {
-		if len(line) < 2 {
-			continue
-		}
-
-		xv, _ := strconv.ParseFloat(line[0], 64)
-		yv, _ := strconv.ParseFloat(line[1], 64)
-		x = append(x, xv)
-		y = append(y, yv)
-	}
-
-	return x, y, nil
-}
 
 func main() {
 	var frequecy float64
@@ -51,5 +24,38 @@ func main() {
 	if len(args) < 1 {
 		fmt.Println("Файл должен быть задан")
 		flag.Usage()
+		return
 	}
+
+	fmt.Println("SSS", toFloat("-0,199"))
+	fmt.Println("SSS", toFloat("-0.199"))
+	fmt.Println("SSS", toFloat("  -0,199"))
+
+	file := args[0]
+	begin, end := 0.0, math.MaxFloat64
+	if len(args) > 1 {
+		begin, _ = strconv.ParseFloat(args[1], 64)
+	}
+	if len(args) > 2 {
+		end, _ = strconv.ParseFloat(args[2], 64)
+	}
+
+	fmt.Println("Используем файл", file)
+	_, _, x, y, err := loadCSV(file)
+	if err != nil {
+		log.Fatalf("Ошибка чтения CSV: %v\n", err)
+	}
+	fmt.Printf("Количество записей: %d, %.2f секунд\n", len(x), x[len(x)-1])
+	_, startIdx, endIdx := Slice(x, begin, end)
+	y = y[startIdx:endIdx]
+
+	var sum, sumSq float64
+	for _, v := range y {
+		sum += v
+		sumSq += v * v
+	}
+	mean := sum / float64(len(y))
+	variance := sumSq/float64(len(y)) - mean*mean
+	stdDev := math.Sqrt(variance)
+	fmt.Printf("Temperature:\n  Mean: %.3f C\n  Std: %.3f K\n  Var: %.3f K^2\n", mean, stdDev, variance)
 }
